@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система прогнозирования заболеваний печени</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/medic.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/medic.png">
+    <link rel="shortcut icon" href="assets/medic.png">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Страница входа -->
+        <div id="login-page" class="page active">
+            <div class="login-container">
+                <div class="login-card">
+                    <div class="login-header">
+                        <h1>Система прогнозирования</h1>
+                        <h2>заболеваний печени</h2>
+                    </div>
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label>Логин</label>
+                            <input type="text" id="username" required placeholder="Введите логин">
+                        </div>
+                        <div class="form-group password-group">
+                            <label>Пароль</label>
+                            <div style="position: relative;">
+                                <input type="password" id="password" required placeholder="Введите пароль" style="width: 100%; padding-right: 40px;">
+                                <img id="toggle-password" src="assets/close.png" alt="Показать пароль" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; width: 20px; height: 20px; opacity: 0.7;">
+                            </div>
+                        </div>
+                        <div id="login-error" class="error-message" style="display:none; transition: all 0.3s ease;"></div>
+                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 15px;">Войти</button>
+                    </form>
+                    <div class="forgot-password">
+                        <a href="#" id="forgot-password-link" style="color: #4a6a8a; text-decoration: none; font-size: 0.9rem;">Забыли пароль?</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Модальное окно для заблокированного пользователя -->
+        <div id="blocked-modal" class="modal" style="display:none;">
+            <div class="modal-content" style="max-width: 400px; text-align: center;">
+                <h3 style="color: #c62828; margin-bottom: 15px;">Доступ заблокирован</h3>
+                <p style="margin-bottom: 15px;">Ваша учетная запись была заблокирована администратором.</p>
+                <p style="margin-bottom: 20px; color: #666;">Для получения помощи обратитесь к администратору системы:</p>
+                <div style="background: #f5f5f5; padding: 10px; border-radius: 8px; margin-bottom: 20px;">
+                    <p>Email: admin@mail.ru</p>
+                    <p>Телефон: +7 (927) 316-38-84</p>
+                </div>
+                <button id="close-blocked-modal" class="btn btn-primary">Закрыть</button>
+            </div>
+        </div>
+
+        <!-- Модальное окно "Забыли пароль" -->
+        <div id="forgot-password-modal" class="modal" style="display:none;">
+            <div class="modal-content" style="max-width: 400px;">
+                <h3>Восстановление пароля</h3>
+                <p>Если вы забыли пароль, обратитесь к администратору системы.</p>
+                <p>Администратор сможет сбросить ваш пароль и выслать новые учетные данные.</p>
+                <hr>
+                <p>Контактные данные администратора:</p>
+                <p>Email: admin@mail.ru</p>
+                <p>Телефон: +7 (927) 316-38-84</p>
+                <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                    <button id="close-forgot-modal" class="btn btn-primary">Закрыть</button>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Панель врача -->
+        <div id="doctor-page" class="page">
+            <div class="app-header">
+                <h1>Система прогнозирования заболеваний печени</h1>
+                <div class="header-info">
+                    <span id="doctor-name">Врач</span>
+                    <button id="logout-btn" class="logout-btn">Выйти</button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" data-tab="predict">Прогнозирование</button>
+                <button class="tab" data-tab="history">История прогнозов</button>
+            </div>
+
+            <!-- Вкладка прогнозирования -->
+            <div id="predict-tab" class="tab-content active">
+                <div class="form-container">
+                    <h2 class="form-title">Ввод клинических данных</h2>
+
+                    <!-- Блок загрузки файла -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
+                        <label style="font-weight: bold;">Загрузить данные из файла:</label>
+                        <input type="file" id="doctor-file-input" accept=".csv,.xlsx,.txt" style="margin-left: 15px;">
+                        <small style="margin-left: 15px; color: #666;">Поддерживаются форматы: CSV, Excel (XLSX), TXT</small>
+                        <div style="margin-top: 10px; font-size: 12px; color: #888;">
+                            Пример CSV: Age,Sex,ALB,ALP,ALT,AST,BIL,CHE,CHOL,CREA,GGT,PROT
+                        </div>
+                    </div>
+
+                    <form id="prediction-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Возраст (лет)</label>
+                                <input type="number" id="Age" name="Age" value="50" step="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Пол</label>
+                                <select id="Sex" name="Sex">
+                                    <option value="m">Мужской</option>
+                                    <option value="f">Женский</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Альбумин (ALB) г/л</label>
+                                <input type="number" step="0.01" id="ALB" name="ALB" value="40" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Щелочная фосфатаза (ALP) ед/л</label>
+                                <input type="number" step="0.01" id="ALP" name="ALP" value="70" required>
+                            </div>
+                            <div class="form-group">
+                                <label>АЛТ (ALT) ед/л</label>
+                                <input type="number" step="0.01" id="ALT" name="ALT" value="30" required>
+                            </div>
+                            <div class="form-group">
+                                <label>АСТ (AST) ед/л</label>
+                                <input type="number" step="0.01" id="AST" name="AST" value="30" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Билирубин (BIL) мкмоль/л</label>
+                                <input type="number" step="0.01" id="BIL" name="BIL" value="10" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Холинэстераза (CHE) кЕд/л</label>
+                                <input type="number" step="0.01" id="CHE" name="CHE" value="8" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Холестерин (CHOL) ммоль/л</label>
+                                <input type="number" step="0.01" id="CHOL" name="CHOL" value="5" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Креатинин (CREA) мкмоль/л</label>
+                                <input type="number" step="0.01" id="CREA" name="CREA" value="80" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Гамма-ГТ (GGT) ед/л</label>
+                                <input type="number" step="0.01" id="GGT" name="GGT" value="30" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Общий белок (PROT) г/л</label>
+                                <input type="number" step="0.01" id="PROT" name="PROT" value="70" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="predict-btn">Выполнить прогноз</button>
+                    </form>
+                </div>
+
+                <!-- Форма для стадии цирроза (изначально скрыта) -->
+                <div id="cirrhosis-form-container" style="display:none;">
+                    <div class="form-container">
+                        <h2 class="form-title">Ввод дополнительных данных (Стадия цирроза)</h2>
+                        <p style="color: #8a5a5a; margin-bottom: 15px;">
+                            Обнаружен цирроз печени. Пожалуйста, введите дополнительные данные для определения стадии.
+                        </p>
+
+                        <!-- Блок загрузки файла для цирроза -->
+                        <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
+                            <label style="font-weight: bold;">Загрузить данные из файла:</label>
+                            <input type="file" id="cirrhosis-file-input" accept=".csv,.xlsx,.txt" style="margin-left: 15px;">
+                            <small style="margin-left: 15px; color: #666;">Поддерживаются форматы: CSV, Excel (XLSX), TXT</small>
+                            <div style="margin-top: 10px; font-size: 12px; color: #888;">
+                                Пример CSV: N_Days,Status,Drug,Ascites,Hepatomegaly,Spiders,Edema,Copper,Alk_Phos,Tryglicerides,Platelets,Prothrombin
+                            </div>
+                        </div>
+                        <form id="cirrhosis-form">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Дней наблюдения</label>
+                                    <input type="number" id="N_Days" value="1000" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Статус пациента</label>
+                                    <select id="Status">
+                                        <option value="C">Цензурировано (C)</option>
+                                        <option value="CL">Цензурировано (CL)</option>
+                                        <option value="D">Смерть</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Препарат</label>
+                                    <select id="Drug">
+                                        <option value="D-penicillamine">D-penicillamine</option>
+                                        <option value="Placebo">Placebo</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Асцит</label>
+                                    <select id="Ascites">
+                                        <option value="N">Нет</option>
+                                        <option value="Y">Да</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Гепатомегалия</label>
+                                    <select id="Hepatomegaly">
+                                        <option value="N">Нет</option>
+                                        <option value="Y">Да</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Сосудистые звёздочки</label>
+                                    <select id="Spiders">
+                                        <option value="N">Нет</option>
+                                        <option value="Y">Да</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Отёки</label>
+                                    <select id="Edema">
+                                        <option value="N">Нет</option>
+                                        <option value="S">S</option>
+                                        <option value="Y">Да</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Медь (Copper) мкг/дл</label>
+                                    <input type="number" step="1" id="Copper" value="50" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Щелочная фосфатаза (Alk_Phos) ед/л</label>
+                                    <input type="number" step="1" id="Alk_Phos" value="1000" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Триглицериды (Tryglicerides) мг/дл</label>
+                                    <input type="number" step="1" id="Tryglicerides" value="100" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Тромбоциты (Platelets) тыс/мл</label>
+                                    <input type="number" step="1" id="Platelets" value="200" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Протромбиновое время (Prothrombin) сек</label>
+                                    <input type="number" step="0.1" id="Prothrombin" value="11" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Определить стадию цирроза</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Результат прогноза -->
+                <div id="prediction-result" style="display:none;"></div>
+                <div id="cirrhosis-result" style="display:none;"></div>
+            </div>
+
+            <!-- Вкладка истории -->
+            <div id="history-tab" class="tab-content">
+                <div class="form-container">
+                    <h2 class="form-title">История прогнозов</h2>
+
+                    <!-- Фильтры -->
+                    <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Тип прогноза:</label>
+                            <select id="history-type-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                                <option value="liver">Заболевания печени</option>
+                                <option value="cirrhosis">Стадии цирроза</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Статус:</label>
+                            <select id="history-status-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                                <option value="confirmed">Подтвержденные</option>
+                                <option value="unconfirmed">Неподтвержденные</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Поиск по ID:</label>
+                            <div style="display: flex; gap: 5px;">
+                                <input type="text" id="history-search-input" placeholder="Введите ID..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                                <button id="history-search-btn" class="btn btn-primary btn-sm">Найти</button>
+                                <button id="history-reset-btn" class="btn btn-secondary btn-sm">Сброс</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px;">&nbsp;</label>
+                            <button id="history-export-btn" class="btn btn-success">Экспорт CSV</button>
+                        </div>
+                    </div>
+
+                    <!-- Таблица результатов -->
+                    <div id="history-table-container" style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
+                        <div class="loading">Загрузка истории...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Панель администратора -->
+        <div id="admin-page" class="page">
+            <div class="app-header">
+                <h1>Система прогнозирования заболеваний печени</h1>
+                <div class="header-info">
+                    <span id="admin-name">Администратор</span>
+                    <button id="admin-logout-btn" class="logout-btn">Выйти</button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" data-tab="data">Управление данными</button>
+                <button class="tab" data-tab="train">Обучение моделей</button>
+                <button class="tab" data-tab="users">Управление пользователями</button>
+                <button class="tab" data-tab="history">История прогнозов</button>
+            </div>
+
+            <!-- Управление данными -->
+            <div id="data-tab" class="tab-content active">
+                <div class="form-container">
+                    <h2 class="form-title">Управление датасетами</h2>
+
+                    <div style="margin-bottom: 20px;">
+                        <label>Выберите датасет: </label>
+                        <select id="dataset-type" style="margin-left: 10px; padding: 8px; border-radius: 6px;">
+                            <option value="hepatitis">Заболевания печени</option>
+                            <option value="cirrhosis">Цирроз печени</option>
+                        </select>
+                    </div>
+
+                    <div id="dropzone" class="dropzone">
+                        <p>Перетащите файл сюда или нажмите для выбора</p>
+                        <small>Поддерживаются форматы: CSV, Excel (XLSX, XLS)</small>
+                        <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none">
+                    </div>
+
+                    <div id="data-table-container" style="margin-top: 20px;"></div>
+
+                    <div id="dataset-info" style="margin-top: 20px;"></div>
+                    <div id="dataset-stats" style="margin-top: 20px;"></div>
+                    <div id="target-distribution" style="margin-top: 20px;"></div>
+
+
+
+                </div>
+            </div>
+
+            <!-- Обучение моделей -->
+            <div id="train-tab" class="tab-content">
+                <div class="form-container">
+                    <h2 class="form-title">Обучение моделей</h2>
+
+                    <!-- Выбор датасета и методов -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <label><strong>Выберите датасет:</strong></label>
+                                <select id="train-dataset-type" style="width: 100%; padding: 8px; margin-top: 5px;">
+                                    <option value="hepatitis">Заболевания печени</option>
+                                    <option value="cirrhosis">Цирроз печени</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label><strong>Выберите методы обучения:</strong></label>
+                                <div style="margin-top: 5px;">
+                                    <label style="margin-right: 15px;">
+                                        <input type="checkbox" id="train-method-xgb" checked> XGBoost
+                                    </label>
+                                    <label>
+                                        <input type="checkbox" id="train-method-knn" checked> KNN
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="train-btn" class="btn btn-primary" style="margin-top: 15px; width: 100%;">Начать обучение</button>
+                    </div>
+
+                    <!-- Вкладки описания методов -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #ddd;">
+                        <button class="method-tab active" data-method="params">Параметры обучения</button>
+                        <button class="method-tab" data-method="xgboost">XGBoost - описание</button>
+                        <button class="method-tab" data-method="knn">KNN - описание</button>
+                    </div>
+
+                    <!-- Параметры обучения -->
+                    <div id="params-content" class="method-content active">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                                <h3>Размеры выборок</h3>
+                                <div class="form-group">
+                                    <label>Тестовая выборка</label>
+                                    <input type="number" id="test-size" step="0.05" value="0.2">
+                                </div>
+                                <div class="form-group">
+                                    <label>Валидационная выборка</label>
+                                    <input type="number" id="val-size" step="0.05" value="0.1">
+                                </div>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                                <h3>XGBoost</h3>
+                                <div class="form-group">
+                                    <label>n_estimators</label>
+                                    <input type="number" id="xgb-n-estimators" value="100">
+                                </div>
+                                <div class="form-group">
+                                    <label>max_depth</label>
+                                    <input type="number" id="xgb-max-depth" value="6">
+                                </div>
+                                <div class="form-group">
+                                    <label>learning_rate</label>
+                                    <input type="number" step="0.01" id="xgb-learning-rate" value="0.1">
+                                </div>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                                <h3>KNN</h3>
+                                <div class="form-group">
+                                    <label>n_neighbors</label>
+                                    <input type="number" id="knn-n-neighbors" value="5">
+                                </div>
+                                <div class="form-group">
+                                    <label>weights</label>
+                                    <select id="knn-weights">
+                                        <option value="uniform">uniform</option>
+                                        <option value="distance" selected>distance</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Описание XGBoost -->
+                    <div id="xgboost-content" class="method-content">
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                            <h3>XGBoost (eXtreme Gradient Boosting)</h3>
+                            <p><strong>Краткая характеристика:</strong> XGBoost — ансамблевый метод машинного обучения, реализующий идею градиентного бустинга. В процессе обучения последовательно строятся слабые модели (обычно деревья решений), каждая из которых корректирует ошибки предыдущих.</p>
+                            <h4>Используемые параметры:</h4>
+                            <ul>
+                                <p><strong>n_estimators</strong> — количество деревьев в ансамбле. Рекомендуемые значения: 50–300.</p>
+                                <p><strong>max_depth</strong> — максимальная глубина каждого дерева. Рекомендуемые значения: 3–10.</p>
+                                <p><strong>learning_rate</strong> — скорость обучения. Рекомендуемые значения: 0,01–0,3.</p>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Описание KNN -->
+                    <div id="knn-content" class="method-content">
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                            <h3>KNN (K-Nearest Neighbors)</h3>
+                            <p><strong>Краткая характеристика:</strong> KNN — непараметрический метод, основанный на принципе ленивого обучения. Классификация объекта осуществляется на основе анализа k ближайших к нему объектов обучающей выборки.</p>
+                            <h4>Используемые параметры:</h4>
+                            <ul>
+                                <p><strong>n_neighbors</strong> — количество ближайших соседей. Рекомендуемые значения: 3–15.</p>
+                                <p><strong>weights</strong> — стратегия взвешивания: uniform (равные веса) или distance (вес обратно пропорционален расстоянию).</p>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div id="training-results" style="margin-top: 20px;"></div>
+
+                    <!-- Кнопка сохранения -->
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button id="save-model-btn" class="btn btn-success" style="display: none;">Сохранить модель в историю</button>
+                    </div>
+
+                    <!-- История обучения -->
+                    <div style="margin-top: 30px;">
+                        <h3>История обучения</h3>
+                        <div id="training-history-container" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
+                            <p>История обучения пуста</p>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button id="clear-training-history" class="btn btn-danger btn-sm">Очистить историю</button>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- История прогнозов (админ) -->
+            <div id="admin-history-tab" class="tab-content">
+                <div class="form-container">
+                    <h2 class="form-title">История прогнозов</h2>
+
+                    <!-- Фильтры -->
+                    <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Тип прогноза:</label>
+                            <select id="admin-history-type-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                                <option value="liver">Заболевания печени</option>
+                                <option value="cirrhosis">Стадии цирроза</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Статус:</label>
+                            <select id="admin-history-status-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                                <option value="confirmed">Подтвержденные</option>
+                                <option value="unconfirmed">Неподтвержденные</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Поиск по ID:</label>
+                            <div style="display: flex; gap: 5px;">
+                                <input type="text" id="admin-history-search-input" placeholder="Введите ID..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                                <button id="admin-history-search-btn" class="btn btn-primary btn-sm">Найти</button>
+                                <button id="admin-history-reset-btn" class="btn btn-secondary btn-sm">Сброс</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px;">&nbsp;</label>
+                            <button id="admin-history-export-btn" class="btn btn-success">Экспорт CSV</button>
+                        </div>
+                    </div>
+
+                    <!-- Таблица результатов -->
+                    <div id="admin-history-container" style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
+                        <div class="loading">Загрузка истории...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Управление пользователями -->
+            <div id="users-tab" class="tab-content">
+                <div class="form-container">
+                    <h2 class="form-title">Управление пользователями</h2>
+
+                    <div id="users-table-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для обратной связи -->
+    <div id="feedback-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Оценка прогноза</h3>
+            <p>Согласны ли вы с поставленным диагнозом?</p>
+            <textarea id="feedback-comment" placeholder="Комментарий (необязательно)" rows="3"></textarea>
+            <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                <button id="feedback-agree" class="btn btn-success">Да, согласен</button>
+                <button id="feedback-disagree" class="btn btn-danger">Нет, не согласен</button>
+                <button id="feedback-cancel" class="btn btn-secondary">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/doctor.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
