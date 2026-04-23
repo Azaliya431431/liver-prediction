@@ -1,6 +1,6 @@
 // api.js - исправленная версия
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'https://liver-prediction-production.up.railway.app/api';
 
 let authToken = null;
 let currentUser = null;
