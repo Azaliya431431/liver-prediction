@@ -32,30 +32,47 @@ import xgboost as xgb
 import re
 from sklearn.impute import KNNImputer, SimpleImputer
 
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import os
+# from fastapi.staticfiles import StaticFiles  (этот импорт оставьте)
+# from fastapi.responses import FileResponse   (этот импорт оставьте)
 
 # --- Настройка для обслуживания фронтенда ---
-# Получаем путь к папке 'frontend'. Она находится в корне проекта.
+# FRONTEND_DIR = ... (этот блок НАДО ПЕРЕНЕСТИ ПОСЛЕ создания app)
+# if os.path.isdir(FRONTEND_DIR):
+#     app.mount(...)
+# @app.get("/")
+# async def serve_frontend_root():
+#     ...
+# ============ 1. СНАЧАЛА СОЗДАЕМ ПРИЛОЖЕНИЕ ============
+app = FastAPI()
+
+# ============ 2. ПОТОМ НАСТРАИВАЕМ CORS ============
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ============ 3. ПОТОМ НАСТРАИВАЕМ ФРОНТЕНД ============
+# Получаем путь к папке frontend
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "frontend")
-# Если в процессе сборки путь отличается, попробуйте путь относительно текущего файла
 if not os.path.isdir(FRONTEND_DIR):
     FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 
-# Подключаем папку 'frontend' по адресу '/frontend'
+# Подключаем папку frontend
 if os.path.isdir(FRONTEND_DIR):
     app.mount("/frontend", StaticFiles(directory=FRONTEND_DIR), name="frontend")
+    
+    @app.get("/")
+    async def serve_frontend_root():
+        index_path = os.path.join(FRONTEND_DIR, "index.html")
+        if os.path.isfile(index_path):
+            return FileResponse(index_path)
+        return {"message": "Сервер работает, но index.html не найден", "status": "ok"}
 
-# Эндпоинт для корня сайта, который отдаст index.html
-@app.get("/")
-async def serve_frontend_root():
-    index_path = os.path.join(FRONTEND_DIR, "index.html")
-    if os.path.isfile(index_path):
-        return FileResponse(index_path)
-    # Если index.html не найден, возвращаем прежний ответ для проверки работы API
-    return {"message": "Сервер работает, но index.html не найден", "status": "ok"}
-
+# ============ 4. ПОТОМ ВСЕ ОСТАЛЬНЫЕ ЭНДПОИНТЫ ============
+# ... остальной код (эндпоинты, функции и т.д.) ...
 # ============ КОНФИГУРАЦИЯ ============
 SECRET_KEY = "secret-key-change-in-production"
 ALGORITHM = "HS256"
