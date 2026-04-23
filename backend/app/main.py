@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles  # <--- ДОБАВИТЬ ЭТУ СТРОКУ
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
@@ -31,7 +32,6 @@ from sklearn.preprocessing import label_binarize
 import xgboost as xgb
 import re
 from sklearn.impute import KNNImputer, SimpleImputer
-
 # from fastapi.staticfiles import StaticFiles  (этот импорт оставьте)
 # from fastapi.responses import FileResponse   (этот импорт оставьте)
 
