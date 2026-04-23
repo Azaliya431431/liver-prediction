@@ -6,6 +6,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from datetime import datetime
 # import pandas as pd
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
 import numpy as np
 import json
 import io
