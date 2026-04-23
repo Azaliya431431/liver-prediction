@@ -32,17 +32,20 @@ from sklearn.preprocessing import label_binarize
 import xgboost as xgb
 import re
 from sklearn.impute import KNNImputer, SimpleImputer
-# from fastapi.staticfiles import StaticFiles  (этот импорт оставьте)
-# from fastapi.responses import FileResponse   (этот импорт оставьте)
-
-# --- Настройка для обслуживания фронтенда ---
-# FRONTEND_DIR = ... (этот блок НАДО ПЕРЕНЕСТИ ПОСЛЕ создания app)
-# if os.path.isdir(FRONTEND_DIR):
-#     app.mount(...)
-# @app.get("/")
-# async def serve_frontend_root():
-#     ...
-# ============ 1. СНАЧАЛА СОЗДАЕМ ПРИЛОЖЕНИЕ ============
+@app.get("/debug")
+async def debug():
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_dir = os.path.dirname(os.path.dirname(current_dir))
+    frontend_dir = os.path.join(project_dir, "frontend")
+    
+    return {
+        "current_dir": current_dir,
+        "project_dir": project_dir,
+        "frontend_dir": frontend_dir,
+        "frontend_exists": os.path.exists(frontend_dir),
+        "files_in_frontend": os.listdir(frontend_dir) if os.path.exists(frontend_dir) else []
+    }
 app = FastAPI()
 
 # ============ 2. ПОТОМ НАСТРАИВАЕМ CORS ============
