@@ -22,4 +22,5 @@ models/
 Thumbs.db
 
 # Логи
-*.log
+*.log"*.db" 
+"backend/liver_prediction.db" 
