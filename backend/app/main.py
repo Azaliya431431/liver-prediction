@@ -32,6 +32,30 @@ import xgboost as xgb
 import re
 from sklearn.impute import KNNImputer, SimpleImputer
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
+# --- Настройка для обслуживания фронтенда ---
+# Получаем путь к папке 'frontend'. Она находится в корне проекта.
+FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "frontend")
+# Если в процессе сборки путь отличается, попробуйте путь относительно текущего файла
+if not os.path.isdir(FRONTEND_DIR):
+    FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+
+# Подключаем папку 'frontend' по адресу '/frontend'
+if os.path.isdir(FRONTEND_DIR):
+    app.mount("/frontend", StaticFiles(directory=FRONTEND_DIR), name="frontend")
+
+# Эндпоинт для корня сайта, который отдаст index.html
+@app.get("/")
+async def serve_frontend_root():
+    index_path = os.path.join(FRONTEND_DIR, "index.html")
+    if os.path.isfile(index_path):
+        return FileResponse(index_path)
+    # Если index.html не найден, возвращаем прежний ответ для проверки работы API
+    return {"message": "Сервер работает, но index.html не найден", "status": "ok"}
+
 # ============ КОНФИГУРАЦИЯ ============
 SECRET_KEY = "secret-key-change-in-production"
 ALGORITHM = "HS256"
