@@ -5,13 +5,6 @@ venv/
 env/
 .venv/
 
-# База данных
-*.db
-*.sqlite
-*.sqlite3
-
-# Модели
-models/
 
 # IDE
 .vscode/
@@ -24,3 +17,7 @@ Thumbs.db
 # Логи
 *.log"*.db" 
 "backend/liver_prediction.db" 
+"__pycache__/" 
+"venv/" 
+".venv/" 
+"*.pyc" 
